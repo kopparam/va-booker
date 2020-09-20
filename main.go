@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -8,13 +9,25 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	fmt.Println("Hello from Docker using WSL2, nin ouan")
 
-	client := &http.Client{}
+	log.Println(time.Now().Add(time.Hour * 24 * 8).Format("2006-01-2"))
+	// client := &http.Client{}
 
+	// tokenRes, err := login(client)
+
+	// if err != nil {
+	// 	log.Panicln(err)
+	// }
+
+	// bookableClasses, err := getBookableClasses(client, tokenRes.AccessToken)
+}
+
+func login(client *http.Client) (tokenResponse, error) {
 	data := url.Values{}
 	data.Set("username", os.Getenv("VA_USER"))
 	data.Set("password", os.Getenv("VA_PASS"))
@@ -46,11 +59,32 @@ func main() {
 	res, err := client.Do(req)
 
 	if err != nil {
-		log.Panicln(err)
-	} else {
-		log.Println("Response:", res)
-		resBody, _ := ioutil.ReadAll(res.Body)
-		log.Println("Response body:", string(resBody))
+		return tokenResponse{}, err
 	}
 
+	log.Println("Response:", res)
+	resBody, _ := ioutil.ReadAll(res.Body)
+	var tokenRes tokenResponse
+	_ = json.Unmarshal(resBody, &tokenRes)
+
+	log.Println("Response body:", tokenRes)
+	return tokenRes, nil
+}
+
+func getBookableClasses(client *http.Client, token string) ([]bookableClass, error) {
+	_ = &getBookableClassesRequest{
+		Ampm:     "ALL",
+		Category: 0,
+		ISODate:  fmt.Sprintf(time.Now().Add(time.Hour * 24 * 8).Format("2006-01-2")),
+		SiteID:   "SPL",
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://hal.virginactive.com.sg/api/classes/bookableclassquery", nil)
+	if err != nil {
+		log.Panicln(err)
+
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer: %s", token))
+
+	return nil, nil
 }
